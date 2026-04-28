@@ -29,41 +29,48 @@ export function BuildingModal({ building, onClose }: BuildingModalProps) {
       role="presentation"
       onClick={onClose}
     >
-      <div
-        className="modal-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="building-modal-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="modal-header">
-          <div className="modal-header-text">
-            <h2 id="building-modal-title">{building.name}</h2>
-            {building.address ? (
-              <p className="modal-address">{building.address}</p>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            className="modal-close"
-            onClick={onClose}
-            aria-label="Close"
-          >
+      <div className="modal-stack">
+        <button
+          type="button"
+          className="modal-close-outside"
+          onClick={(e) => {
+            e.stopPropagation()
+            onClose()
+          }}
+          aria-label="Close"
+        >
+          <span className="modal-close-outside-icon" aria-hidden="true">
             ×
-          </button>
-        </header>
-        {building.imageUrl ? (
-          <img
-            className="modal-image"
-            src={building.imageUrl}
-            alt=""
-          />
-        ) : null}
+          </span>
+        </button>
         <div
-          className="modal-body building-prose"
-          // Trusted repo-authored Markdown compiled at build time
-          dangerouslySetInnerHTML={{ __html: building.html }}
-        />
+          className="modal-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="building-modal-title"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <header className="modal-header">
+            <div className="modal-header-text">
+              <h2 id="building-modal-title">{building.name}</h2>
+              {building.address ? (
+                <p className="modal-address">{building.address}</p>
+              ) : null}
+            </div>
+          </header>
+          {building.imageUrl ? (
+            <img
+              className="modal-image"
+              src={building.imageUrl}
+              alt=""
+            />
+          ) : null}
+          <div
+            className="modal-body building-prose"
+            // Trusted repo-authored Markdown compiled at build time
+            dangerouslySetInnerHTML={{ __html: building.html }}
+          />
+        </div>
       </div>
     </div>
   )
