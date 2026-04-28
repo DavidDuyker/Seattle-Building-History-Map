@@ -6,5 +6,6 @@ export interface Building {
   address?: string
   year?: number
   imageUrl?: string
+  imageUrls?: string[]
   html: string
 }

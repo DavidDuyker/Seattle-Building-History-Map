@@ -62,7 +62,13 @@ export function BuildingModal({ building, isClosing, onClose }: BuildingModalPro
               ) : null}
             </div>
           </header>
-          {building.imageUrl ? (
+          {building.imageUrls && building.imageUrls.length > 0 ? (
+            <div className="modal-image-stack">
+              {building.imageUrls.map((url) => (
+                <img key={url} className="modal-image" src={url} alt="" />
+              ))}
+            </div>
+          ) : building.imageUrl ? (
             <img
               className="modal-image"
               src={building.imageUrl}
