@@ -189,6 +189,67 @@ body {
   font-weight: 650;
 }
 
+.map-locate-control {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1000;
+  max-width: min(16rem, calc(100% - 3.5rem));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.map-locate-control > * {
+  pointer-events: auto;
+}
+
+.map-locate-button {
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(26, 35, 50, 0.12);
+  cursor: pointer;
+}
+
+.map-locate-button:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.map-locate-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.map-locate-button:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.map-locate-error {
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(26, 35, 50, 0.12);
+}
+
+.map-locate-error:empty {
+  display: none;
+}
+
 .leaflet-container {
   font-family: var(--font);
 }
