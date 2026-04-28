@@ -35,6 +35,35 @@ function normalizeImageToPublicUrl(
   return undefined
 }
 
+function syncDataImagesToPublic(root: string) {
+  const srcDir = path.join(root, 'data', 'images')
+  const dstDir = path.join(root, 'public', 'images')
+  const legacyDir = dstDir
+  fs.mkdirSync(srcDir, { recursive: true })
+  fs.mkdirSync(dstDir, { recursive: true })
+
+  // One-time backfill: keep existing repos working by migrating legacy public images
+  // into data/images if they are not already present.
+  for (const file of fs.readdirSync(legacyDir)) {
+    const legacyPath = path.join(legacyDir, file)
+    const stat = fs.statSync(legacyPath)
+    if (!stat.isFile() || file.startsWith('.')) continue
+    const dataPath = path.join(srcDir, file)
+    if (!fs.existsSync(dataPath)) {
+      fs.copyFileSync(legacyPath, dataPath)
+    }
+  }
+
+  const files = fs.readdirSync(srcDir)
+  for (const file of files) {
+    const src = path.join(srcDir, file)
+    const dst = path.join(dstDir, file)
+    const stat = fs.statSync(src)
+    if (!stat.isFile() || file.startsWith('.')) continue
+    fs.copyFileSync(src, dst)
+  }
+}
+
 function parseNumber(value: unknown, field: string, file: string): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string' && value.trim() !== '') {
@@ -73,7 +102,35 @@ function parseCoordinatePair(value: unknown, file: string): [number, number] {
   ]
 }
 
+function toImagesPath(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return ''
+  const normalized = trimmed.replace(/^\/+/, '').replace(/^images\//, '')
+  return `images/${normalized}`
+}
+
+function parseEmbeddedImages(
+  markdown: string,
+): { imagePaths: string[]; markdownWithoutImages: string } {
+  const imagePaths: string[] = []
+  const obsidianRe = /!\[\[([^\]]+)\]\]/g
+  const markdownRe = /!\[[^\]]*]\(([^)]+)\)/g
+  let without = markdown
+
+  without = without.replace(obsidianRe, (_all, rawPath: string) => {
+    imagePaths.push(toImagesPath(rawPath))
+    return ''
+  })
+  without = without.replace(markdownRe, (_all, rawPath: string) => {
+    imagePaths.push(toImagesPath(rawPath))
+    return ''
+  })
+
+  return { imagePaths, markdownWithoutImages: without.replace(/^\s+/, '') }
+}
+
 function compileBuildings(root: string, base: string): Building[] {
+  syncDataImagesToPublic(root)
   const dir = path.join(root, 'data', 'buildings')
   if (!fs.existsSync(dir)) {
     console.warn(`[buildings-data] missing folder ${dir}, using empty list`)
@@ -88,46 +145,59 @@ function compileBuildings(root: string, base: string): Building[] {
   const buildings: Building[] = []
 
   for (const file of files) {
-    const full = path.join(dir, file)
-    const raw = fs.readFileSync(full, 'utf8')
-    const { data, content } = matter(raw)
-    const name = data.name
-    if (typeof name !== 'string' || !name.trim()) {
-      throw new Error(`[buildings-data] ${file}: frontmatter "name" is required`)
+    try {
+      const full = path.join(dir, file)
+      const raw = fs.readFileSync(full, 'utf8')
+      const { data, content } = matter(raw)
+      const name = data.name
+      if (typeof name !== 'string' || !name.trim()) {
+        console.warn(`[buildings-data] skipping ${file}: missing frontmatter "name"`)
+        continue
+      }
+      const hasSeparateLatLng = data.lat != null || data.lng != null
+      const hasPairLatLng = data['lat, lng'] != null
+      const [lat, lng] = hasPairLatLng
+        ? parseCoordinatePair(data['lat, lng'], file)
+        : [
+            parseNumber(data.lat, 'lat', file),
+            parseNumber(data.lng, 'lng', file),
+          ]
+
+      if (hasSeparateLatLng && hasPairLatLng) {
+        throw new Error(
+          `[buildings-data] ${file}: use either "lat/lng" or "lat, lng", not both`,
+        )
+      }
+      const address =
+        typeof data.address === 'string' && data.address.trim()
+          ? data.address.trim()
+          : undefined
+      const year = parseOptionalNumber(data.year, 'year', file)
+      const parsedContent = parseEmbeddedImages(content.trim() || '')
+      const imageUrls = parsedContent.imagePaths
+        .map((p) => normalizeImageToPublicUrl(root, base, p))
+        .filter((p): p is string => Boolean(p))
+      const imageFromFrontmatter = normalizeImageToPublicUrl(root, base, data.image)
+      const imageUrl = imageUrls[0] ?? imageFromFrontmatter
+      const html = renderMarkdown(parsedContent.markdownWithoutImages || '', {
+        async: false,
+      })
+
+      buildings.push({
+        id: slugFromFilename(file),
+        name: name.trim(),
+        lat,
+        lng,
+        address,
+        year,
+        imageUrl,
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+        html,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.warn(`[buildings-data] skipping ${file}: ${message}`)
     }
-    const hasSeparateLatLng = data.lat != null || data.lng != null
-    const hasPairLatLng = data['lat, lng'] != null
-    const [lat, lng] = hasPairLatLng
-      ? parseCoordinatePair(data['lat, lng'], file)
-      : [
-          parseNumber(data.lat, 'lat', file),
-          parseNumber(data.lng, 'lng', file),
-        ]
-
-    if (hasSeparateLatLng && hasPairLatLng) {
-      throw new Error(
-        `[buildings-data] ${file}: use either "lat/lng" or "lat, lng", not both`,
-      )
-    }
-    const address =
-      typeof data.address === 'string' && data.address.trim()
-        ? data.address.trim()
-        : undefined
-    const year = parseOptionalNumber(data.year, 'year', file)
-    const imageUrl = normalizeImageToPublicUrl(root, base, data.image)
-
-    const html = renderMarkdown(content.trim() || '', { async: false })
-
-    buildings.push({
-      id: slugFromFilename(file),
-      name: name.trim(),
-      lat,
-      lng,
-      address,
-      year,
-      imageUrl,
-      html,
-    })
   }
 
   return buildings
@@ -158,9 +228,15 @@ export function buildingsDataPlugin(): Plugin {
     },
     configureServer(server) {
       const watchDir = path.join(root, 'data', 'buildings')
+      const imagesDir = path.join(root, 'data', 'images')
       server.watcher.add(watchDir)
+      server.watcher.add(imagesDir)
       const onChange = (file: string) => {
-        if (file.startsWith(watchDir) && file.endsWith('.md')) {
+        if (
+          (file.startsWith(watchDir) && file.endsWith('.md')) ||
+          file.startsWith(imagesDir)
+        ) {
+          if (file.startsWith(imagesDir)) syncDataImagesToPublic(root)
           invalidateBuildings(server)
         }
       }

@@ -7,14 +7,21 @@ Each historic place is one Markdown file under `data/buildings/`. The filename (
 | Field     | Required | Type   | Description |
 |-----------|----------|--------|-------------|
 | `name`    | yes      | string | Display name and map tooltip. |
-| `lat`     | yes      | number | Latitude (WGS84). |
-| `lng`     | yes      | number | Longitude (WGS84). |
+| `lat, lng`| yes      | string | Comma-separated latitude/longitude pair (WGS84). Example: `47.6278, -122.3096`. |
 | `address` | no       | string | Street or general location line. |
-| `image`   | no       | string | Path to a file under `public/` (with or without a leading `/`). The file must exist at build time. Example: `images/smith-tower.svg` or `/images/smith-tower.svg`. |
+| `year`    | no       | number | Year built, displayed in the modal header when present. |
+| `image`   | no       | string | Legacy fallback image field. Prefer an image embed in markdown body instead. |
 
 ## Body
 
 Everything after the closing `---` of the frontmatter is Markdown. It is turned into HTML at build time and shown in the building modal.
+
+For images, prefer embedding the first image in the markdown body (Obsidian-style or markdown-style), for example:
+
+- `![[Screenshot 2026-04-28 at 2.31.38 PM.png]]`
+- `![](images/smith-tower.png)`
+
+The first embedded image is used as the modal hero image.
 
 ## Example
 
