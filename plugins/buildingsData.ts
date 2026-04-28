@@ -44,6 +44,30 @@ function parseNumber(value: unknown, field: string, file: string): number {
   throw new Error(`[buildings-data] ${file}: invalid or missing ${field}`)
 }
 
+function parseCoordinatePair(value: unknown, file: string): [number, number] {
+  if (Array.isArray(value) && value.length === 2) {
+    return [
+      parseNumber(value[0], 'lat, lng[0]', file),
+      parseNumber(value[1], 'lat, lng[1]', file),
+    ]
+  }
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`[buildings-data] ${file}: invalid or missing "lat, lng"`)
+  }
+
+  const parts = value.trim().split(',').map((part) => part.trim())
+  if (parts.length !== 2) {
+    throw new Error(
+      `[buildings-data] ${file}: "lat, lng" must be two values like "47.6, -122.3"`,
+    )
+  }
+
+  return [
+    parseNumber(parts[0], 'lat, lng[0]', file),
+    parseNumber(parts[1], 'lat, lng[1]', file),
+  ]
+}
+
 function compileBuildings(root: string, base: string): Building[] {
   const dir = path.join(root, 'data', 'buildings')
   if (!fs.existsSync(dir)) {
@@ -66,8 +90,20 @@ function compileBuildings(root: string, base: string): Building[] {
     if (typeof name !== 'string' || !name.trim()) {
       throw new Error(`[buildings-data] ${file}: frontmatter "name" is required`)
     }
-    const lat = parseNumber(data.lat, 'lat', file)
-    const lng = parseNumber(data.lng, 'lng', file)
+    const hasSeparateLatLng = data.lat != null || data.lng != null
+    const hasPairLatLng = data['lat, lng'] != null
+    const [lat, lng] = hasPairLatLng
+      ? parseCoordinatePair(data['lat, lng'], file)
+      : [
+          parseNumber(data.lat, 'lat', file),
+          parseNumber(data.lng, 'lng', file),
+        ]
+
+    if (hasSeparateLatLng && hasPairLatLng) {
+      throw new Error(
+        `[buildings-data] ${file}: use either "lat/lng" or "lat, lng", not both`,
+      )
+    }
     const address =
       typeof data.address === 'string' && data.address.trim()
         ? data.address.trim()

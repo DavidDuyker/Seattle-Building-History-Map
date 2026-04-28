@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   MapContainer,
   TileLayer,
+  Circle,
   CircleMarker,
   Tooltip,
   useMap,
@@ -19,6 +20,7 @@ const SEATTLE_BOUNDS: [[number, number], [number, number]] = [
 
 const DEFAULT_MAP_ZOOM = 13
 const LOCATION_ZOOM = 14
+const MAX_ACCURACY_RADIUS_METERS = 700
 
 function geoErrorMessage(code: number): string {
   switch (code) {
@@ -38,6 +40,11 @@ function CurrentLocationControl() {
   const errorId = useId()
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [currentLocation, setCurrentLocation] = useState<{
+    lat: number
+    lng: number
+    accuracy: number
+  } | null>(null)
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -72,7 +79,12 @@ function CurrentLocationControl() {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude, longitude } = pos.coords
+        const { latitude, longitude, accuracy } = pos.coords
+        setCurrentLocation({
+          lat: latitude,
+          lng: longitude,
+          accuracy,
+        })
         map.flyTo([latitude, longitude], LOCATION_ZOOM)
         setStatus('idle')
         setErrorMessage(null)
@@ -87,26 +99,54 @@ function CurrentLocationControl() {
   }, [map, scheduleClearError])
 
   return createPortal(
-    <div className="map-locate-control" role="region" aria-label="Map location">
-      <button
-        type="button"
-        className="map-locate-button"
-        onClick={onLocate}
-        disabled={status === 'loading'}
-        aria-busy={status === 'loading'}
-        aria-describedby={errorMessage ? errorId : undefined}
-      >
-        {status === 'loading' ? 'Locating…' : 'Use current location'}
-      </button>
-      <div
-        id={errorId}
-        className="map-locate-error"
-        role="status"
-        aria-live="polite"
-      >
-        {errorMessage}
+    <>
+      <div className="map-locate-control" role="region" aria-label="Map location">
+        <button
+          type="button"
+          className="map-locate-button"
+          onClick={onLocate}
+          disabled={status === 'loading'}
+          aria-busy={status === 'loading'}
+          aria-describedby={errorMessage ? errorId : undefined}
+        >
+          {status === 'loading' ? 'Locating…' : 'Use current location'}
+        </button>
+        <div
+          id={errorId}
+          className="map-locate-error"
+          role="status"
+          aria-live="polite"
+        >
+          {errorMessage}
+        </div>
       </div>
-    </div>,
+      {currentLocation ? (
+        <>
+          <Circle
+            center={[currentLocation.lat, currentLocation.lng]}
+            radius={Math.min(currentLocation.accuracy, MAX_ACCURACY_RADIUS_METERS)}
+            pathOptions={{
+              color: '#4f8ef7',
+              weight: 1,
+              fillColor: '#4f8ef7',
+              fillOpacity: 0.15,
+              interactive: false,
+            }}
+          />
+          <CircleMarker
+            center={[currentLocation.lat, currentLocation.lng]}
+            radius={7}
+            pathOptions={{
+              color: '#ffffff',
+              weight: 2.5,
+              fillColor: '#2f7cf6',
+              fillOpacity: 1,
+              interactive: false,
+            }}
+          />
+        </>
+      ) : null}
+    </>,
     map.getContainer(),
   )
 }

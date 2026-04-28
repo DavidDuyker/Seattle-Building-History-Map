@@ -1,7 +1,6 @@
 ---
 name: William Bloch House
-lat: 47.62825236495083
-lng: -122.31299174447335
+lat, lng: 47.62825236495083, -122.31299174447335
 address: 1439 E Prospect St, Seattle, WA 98112
 image: images/William-Bloch-House.png
 ---
