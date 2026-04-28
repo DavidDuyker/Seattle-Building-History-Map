@@ -4,6 +4,7 @@ export interface Building {
   lat: number
   lng: number
   address?: string
+  year?: number
   imageUrl?: string
   html: string
 }

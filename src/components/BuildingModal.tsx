@@ -3,10 +3,11 @@ import type { Building } from '../types/building'
 
 type BuildingModalProps = {
   building: Building | null
+  isClosing: boolean
   onClose: () => void
 }
 
-export function BuildingModal({ building, onClose }: BuildingModalProps) {
+export function BuildingModal({ building, isClosing, onClose }: BuildingModalProps) {
   useEffect(() => {
     if (!building) return
     const onKeyDown = (e: KeyboardEvent) => {
@@ -25,7 +26,7 @@ export function BuildingModal({ building, onClose }: BuildingModalProps) {
 
   return (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop ${isClosing ? 'modal-closing' : 'modal-open'}`}
       role="presentation"
       onClick={onClose}
     >
@@ -55,6 +56,9 @@ export function BuildingModal({ building, onClose }: BuildingModalProps) {
               <h2 id="building-modal-title">{building.name}</h2>
               {building.address ? (
                 <p className="modal-address">{building.address}</p>
+              ) : null}
+              {building.year ? (
+                <p className="modal-address">Built {building.year}</p>
               ) : null}
             </div>
           </header>

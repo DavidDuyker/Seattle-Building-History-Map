@@ -44,6 +44,11 @@ function parseNumber(value: unknown, field: string, file: string): number {
   throw new Error(`[buildings-data] ${file}: invalid or missing ${field}`)
 }
 
+function parseOptionalNumber(value: unknown, field: string, file: string): number | undefined {
+  if (value == null) return undefined
+  return parseNumber(value, field, file)
+}
+
 function parseCoordinatePair(value: unknown, file: string): [number, number] {
   if (Array.isArray(value) && value.length === 2) {
     return [
@@ -108,6 +113,7 @@ function compileBuildings(root: string, base: string): Building[] {
       typeof data.address === 'string' && data.address.trim()
         ? data.address.trim()
         : undefined
+    const year = parseOptionalNumber(data.year, 'year', file)
     const imageUrl = normalizeImageToPublicUrl(root, base, data.image)
 
     const html = renderMarkdown(content.trim() || '', { async: false })
@@ -118,6 +124,7 @@ function compileBuildings(root: string, base: string): Building[] {
       lat,
       lng,
       address,
+      year,
       imageUrl,
       html,
     })
