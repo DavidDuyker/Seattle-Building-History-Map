@@ -11,9 +11,7 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1 className="app-title">Seattle Buildings History Map</h1>
-        <p className="app-tagline">
-          Tap a dot to read about a historic place. Works offline after your first visit.
-        </p>
+        
       </header>
       <main className="app-main">
         <MapView buildings={buildings} onSelectBuilding={setSelected} />

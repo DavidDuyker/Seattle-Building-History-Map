@@ -25,8 +25,8 @@ export function MapView({ buildings, onSelectBuilding }: MapViewProps) {
       maxBoundsViscosity={0.65}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
       {buildings.map((b) => (
         <CircleMarker
@@ -34,10 +34,10 @@ export function MapView({ buildings, onSelectBuilding }: MapViewProps) {
           center={[b.lat, b.lng]}
           radius={9}
           pathOptions={{
-            color: '#ffffff',
+            color: '#f5f5f5',
             weight: 2,
-            fillColor: '#1e3a5f',
-            fillOpacity: 0.92,
+            fillColor: '#2a2a2a',
+            fillOpacity: 0.9,
           }}
           eventHandlers={{
             click: () => onSelectBuilding(b),

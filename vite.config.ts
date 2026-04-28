@@ -3,8 +3,12 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { buildingsDataPlugin } from './plugins/buildingsData.ts'
 
+/** GitHub project Pages URL path (must match the repo name). */
+const GITHUB_PAGES_BASE = '/Seattle-Building-History-Map/'
+
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.GITHUB_PAGES === 'true' ? GITHUB_PAGES_BASE : '/',
   plugins: [
     buildingsDataPlugin(),
     react(),
@@ -20,7 +24,8 @@ export default defineConfig({
         background_color: '#f0f4f8',
         display: 'standalone',
         orientation: 'portrait-primary',
-        start_url: '/',
+        start_url: './',
+        scope: './',
         icons: [
           {
             src: 'pwa-192.svg',
@@ -40,10 +45,11 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,svg,webp,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/i,
+            urlPattern:
+              /^https:\/\/[abcd]\.basemaps\.cartocdn\.com\/light_all\/.*/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'osm-tiles',
+              cacheName: 'map-tiles',
               expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 14 },
             },
           },
