@@ -4,6 +4,7 @@ lat, lng: 47.62825236495083, -122.31299174447335
 address: 1439 E Prospect St, Seattle, WA 98112
 image: images/William-Bloch-House.png
 ---
+Source: Buildings of Seattle
 
 A block off of Millionaires Row and fronting Volunteer Park is one of my favorite homes designed by local architect Arthur Loveless. This architect came to Seattle in 1907, and for several years, he worked in partnership with Clayton Wilson, designing primarily larger residences, the Alexander Pantages house in Washington Park perhaps being their most famous. Loveless was known for his eclectic homes, which often were designed in the Tudor revival idiom such as his iconic Studio Building, now known as the Loveless Building.
 
