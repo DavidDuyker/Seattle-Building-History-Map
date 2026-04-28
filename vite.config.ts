@@ -20,7 +20,7 @@ export default defineConfig({
         short_name: 'SEA Buildings',
         description:
           'Explore notable historic buildings around Seattle on an interactive map.',
-        theme_color: '#1e3a5f',
+        theme_color: '#000000',
         background_color: '#f0f4f8',
         display: 'standalone',
         orientation: 'portrait-primary',

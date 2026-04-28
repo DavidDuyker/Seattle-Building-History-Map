@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   MapContainer,
@@ -116,7 +116,28 @@ type MapViewProps = {
   onSelectBuilding: (building: Building) => void
 }
 
+/** Tooltips steal the first tap on touch; desktop hover still gets names. */
+function useCoarsePointer(): boolean {
+  const [coarse, setCoarse] = useState(() =>
+    typeof window !== 'undefined' &&
+    window.matchMedia('(pointer: coarse)').matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse)')
+    const onChange = () => setCoarse(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return coarse
+}
+
+/** Wider invisible hit target; visual dot stays radius 9. */
+const MARKER_HIT_RADIUS = 22
+const MARKER_VISUAL_RADIUS = 9
+
 export function MapView({ buildings, onSelectBuilding }: MapViewProps) {
+  const coarsePointer = useCoarsePointer()
+
   return (
     <MapContainer
       center={SEATTLE_CENTER}
@@ -132,24 +153,39 @@ export function MapView({ buildings, onSelectBuilding }: MapViewProps) {
       />
       <CurrentLocationControl />
       {buildings.map((b) => (
-        <CircleMarker
-          key={b.id}
-          center={[b.lat, b.lng]}
-          radius={9}
-          pathOptions={{
-            color: '#f5f5f5',
-            weight: 2,
-            fillColor: '#2a2a2a',
-            fillOpacity: 0.9,
-          }}
-          eventHandlers={{
-            click: () => onSelectBuilding(b),
-          }}
-        >
-          <Tooltip permanent={false} direction="top" offset={[0, -6]}>
-            {b.name}
-          </Tooltip>
-        </CircleMarker>
+        <Fragment key={b.id}>
+          <CircleMarker
+            center={[b.lat, b.lng]}
+            radius={MARKER_HIT_RADIUS}
+            pathOptions={{
+              interactive: true,
+              stroke: false,
+              fillColor: '#000000',
+              fillOpacity: 0.001,
+              className: 'map-marker-hit',
+            }}
+            eventHandlers={{
+              click: () => onSelectBuilding(b),
+            }}
+          />
+          <CircleMarker
+            center={[b.lat, b.lng]}
+            radius={MARKER_VISUAL_RADIUS}
+            pathOptions={{
+              interactive: false,
+              color: '#f5f5f5',
+              weight: 2,
+              fillColor: '#2a2a2a',
+              fillOpacity: 0.9,
+            }}
+          >
+            {!coarsePointer ? (
+              <Tooltip permanent={false} direction="top" offset={[0, -6]}>
+                {b.name}
+              </Tooltip>
+            ) : null}
+          </CircleMarker>
+        </Fragment>
       ))}
     </MapContainer>
   )
