@@ -14,6 +14,7 @@ function slugFromFilename(file: string): string {
 
 function normalizeImageToPublicUrl(
   root: string,
+  base: string,
   image: string | undefined,
 ): string | undefined {
   if (!image || typeof image !== 'string') return undefined
@@ -23,7 +24,9 @@ function normalizeImageToPublicUrl(
   const withoutLeading = trimmed.replace(/^\/+/, '')
   const publicPath = path.join(root, 'public', withoutLeading)
   if (fs.existsSync(publicPath)) {
-    return '/' + withoutLeading.split(path.sep).join('/')
+    const rel = withoutLeading.split(path.sep).join('/')
+    const prefix = base.endsWith('/') ? base : `${base}/`
+    return prefix === '/' ? `/${rel}` : `${prefix}${rel}`
   }
 
   console.warn(
@@ -41,7 +44,7 @@ function parseNumber(value: unknown, field: string, file: string): number {
   throw new Error(`[buildings-data] ${file}: invalid or missing ${field}`)
 }
 
-function compileBuildings(root: string): Building[] {
+function compileBuildings(root: string, base: string): Building[] {
   const dir = path.join(root, 'data', 'buildings')
   if (!fs.existsSync(dir)) {
     console.warn(`[buildings-data] missing folder ${dir}, using empty list`)
@@ -69,7 +72,7 @@ function compileBuildings(root: string): Building[] {
       typeof data.address === 'string' && data.address.trim()
         ? data.address.trim()
         : undefined
-    const imageUrl = normalizeImageToPublicUrl(root, data.image)
+    const imageUrl = normalizeImageToPublicUrl(root, base, data.image)
 
     const html = renderMarkdown(content.trim() || '', { async: false })
 
@@ -94,18 +97,20 @@ function invalidateBuildings(server: ViteDevServer) {
 
 export function buildingsDataPlugin(): Plugin {
   let root = process.cwd()
+  let base = '/'
 
   return {
     name: 'buildings-data',
     configResolved(config) {
       root = config.root
+      base = config.base
     },
     resolveId(id) {
       if (id === VIRTUAL_ID) return RESOLVED_VIRTUAL
     },
     load(id) {
       if (id !== RESOLVED_VIRTUAL) return
-      const buildings = compileBuildings(root)
+      const buildings = compileBuildings(root, base)
       return `export default ${JSON.stringify(buildings)}`
     },
     configureServer(server) {
