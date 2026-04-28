@@ -27,12 +27,14 @@
 
 body {
   margin: 0;
-  min-height: 100dvh;
+  height: 100vh;
+  min-height: 100vh;
   background: var(--header-bg);
 }
 
 #root {
-  min-height: 100dvh;
+  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -53,10 +55,7 @@ body {
 
 .map-view {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) * -1);
-  right: calc(env(safe-area-inset-right, 0px) * -1);
-  bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
-  left: calc(env(safe-area-inset-left, 0px) * -1);
+  inset: 0;
   z-index: 0;
 }
 
