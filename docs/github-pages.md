@@ -14,6 +14,7 @@ The site is built with `GITHUB_PAGES=true` so asset URLs use the project path `/
 
 ## If the workflow fails
 
+- If **`npm ci`** fails with **`ERESOLVE`** / peer dependency errors, the lockfile must match `package.json` (run `npm install` locally and commit `package-lock.json`). This project needs **`vite-plugin-pwa` 1.x** for **Vite 6**.
 - Confirm **Settings** → **Actions** → **General** → *Workflow permissions* allows workflows to run (read and write for `GITHUB_TOKEN` where required).
 - The first Pages deploy may require accepting the **github-pages** environment (if GitHub prompts for deployment approval).
 
