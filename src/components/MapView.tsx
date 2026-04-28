@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   MapContainer,
@@ -7,20 +7,39 @@ import {
   CircleMarker,
   Tooltip,
   useMap,
+  useMapEvents,
 } from 'react-leaflet'
 import type { Building } from '../types/building'
 
 import 'leaflet/dist/leaflet.css'
 
-const SEATTLE_CENTER: [number, number] = [47.6062, -122.3321]
+const SEATTLE_CENTER: [number, number] = [47.61965282347559, -122.32061416615362]
 const SEATTLE_BOUNDS: [[number, number], [number, number]] = [
   [47.42, -122.5],
   [47.78, -122.12],
 ]
 
-const DEFAULT_MAP_ZOOM = 13
-const LOCATION_ZOOM = 14
+const DEFAULT_MAP_ZOOM = 15
+const LOCATION_ZOOM = 17
 const MAX_ACCURACY_RADIUS_METERS = 700
+const BUILDING_MARKER_RADIUS = 12
+const MARKER_RADIUS_MIN = 8
+const MARKER_RADIUS_MAX = 18
+const MARKER_RADIUS_ANIM_MS = 180
+
+function markerRadiusForZoom(zoom: number): number {
+  const scaled = BUILDING_MARKER_RADIUS + (zoom - DEFAULT_MAP_ZOOM) * 1.35
+  return Math.max(MARKER_RADIUS_MIN, Math.min(MARKER_RADIUS_MAX, scaled))
+}
+
+function MarkerZoomAnimator({ onZoomEnd }: { onZoomEnd: (zoom: number) => void }) {
+  useMapEvents({
+    zoomend: (event) => {
+      onZoomEnd(event.target.getZoom())
+    },
+  })
+  return null
+}
 
 function geoErrorMessage(code: number): string {
   switch (code) {
@@ -106,10 +125,37 @@ function CurrentLocationControl() {
           className="map-locate-button"
           onClick={onLocate}
           disabled={status === 'loading'}
+          aria-label="Use current location"
           aria-busy={status === 'loading'}
           aria-describedby={errorMessage ? errorId : undefined}
         >
-          {status === 'loading' ? 'Locating…' : 'Use current location'}
+          {status === 'loading' ? (
+            <span aria-hidden="true">…</span>
+          ) : (
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              focusable="false"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              />
+              <path
+                d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+            </svg>
+          )}
         </button>
         <div
           id={errorId}
@@ -158,9 +204,8 @@ type MapViewProps = {
 
 /** Tooltips steal the first tap on touch; desktop hover still gets names. */
 function useCoarsePointer(): boolean {
-  const [coarse, setCoarse] = useState(() =>
-    typeof window !== 'undefined' &&
-    window.matchMedia('(pointer: coarse)').matches,
+  const [coarse, setCoarse] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches,
   )
   useEffect(() => {
     const mq = window.matchMedia('(pointer: coarse)')
@@ -171,17 +216,52 @@ function useCoarsePointer(): boolean {
   return coarse
 }
 
-/** Wider invisible hit target; visual dot stays radius 9. */
-const MARKER_HIT_RADIUS = 22
-const MARKER_VISUAL_RADIUS = 9
-
 export function MapView({ buildings, onSelectBuilding }: MapViewProps) {
   const coarsePointer = useCoarsePointer()
+  const [markerRadius, setMarkerRadius] = useState(BUILDING_MARKER_RADIUS)
+  const markerRadiusRef = useRef(BUILDING_MARKER_RADIUS)
+  const markerAnimRef = useRef<number | null>(null)
+
+  const animateMarkerRadius = useCallback((targetRadius: number) => {
+    if (markerAnimRef.current) cancelAnimationFrame(markerAnimRef.current)
+    const start = performance.now()
+    const from = markerRadiusRef.current
+    const delta = targetRadius - from
+
+    const step = (now: number) => {
+      const progress = Math.min((now - start) / MARKER_RADIUS_ANIM_MS, 1)
+      const eased = 1 - (1 - progress) * (1 - progress)
+      const next = from + delta * eased
+      markerRadiusRef.current = next
+      setMarkerRadius(next)
+      if (progress < 1) {
+        markerAnimRef.current = requestAnimationFrame(step)
+      } else {
+        markerAnimRef.current = null
+      }
+    }
+
+    markerAnimRef.current = requestAnimationFrame(step)
+  }, [])
+
+  useEffect(
+    () => () => {
+      if (markerAnimRef.current) cancelAnimationFrame(markerAnimRef.current)
+    },
+    [],
+  )
+  const onZoomEnd = useCallback(
+    (zoom: number) => {
+      animateMarkerRadius(markerRadiusForZoom(zoom))
+    },
+    [animateMarkerRadius],
+  )
 
   return (
     <MapContainer
       center={SEATTLE_CENTER}
       zoom={DEFAULT_MAP_ZOOM}
+      zoomControl={false}
       className="map-view"
       scrollWheelZoom
       maxBounds={SEATTLE_BOUNDS}
@@ -191,41 +271,30 @@ export function MapView({ buildings, onSelectBuilding }: MapViewProps) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
+      <MarkerZoomAnimator onZoomEnd={onZoomEnd} />
       <CurrentLocationControl />
       {buildings.map((b) => (
-        <Fragment key={b.id}>
-          <CircleMarker
-            center={[b.lat, b.lng]}
-            radius={MARKER_HIT_RADIUS}
-            pathOptions={{
-              interactive: true,
-              stroke: false,
-              fillColor: '#000000',
-              fillOpacity: 0.001,
-              className: 'map-marker-hit',
-            }}
-            eventHandlers={{
-              click: () => onSelectBuilding(b),
-            }}
-          />
-          <CircleMarker
-            center={[b.lat, b.lng]}
-            radius={MARKER_VISUAL_RADIUS}
-            pathOptions={{
-              interactive: false,
-              color: '#f5f5f5',
-              weight: 2,
-              fillColor: '#2a2a2a',
-              fillOpacity: 0.9,
-            }}
-          >
-            {!coarsePointer ? (
-              <Tooltip permanent={false} direction="top" offset={[0, -6]}>
-                {b.name}
-              </Tooltip>
-            ) : null}
-          </CircleMarker>
-        </Fragment>
+        <CircleMarker
+          key={b.id}
+          center={[b.lat, b.lng]}
+          radius={markerRadius}
+          pathOptions={{
+            interactive: true,
+            color: '#f5f5f5',
+            weight: 2,
+            fillColor: 'var(--building-dot)',
+            fillOpacity: 0.9,
+          }}
+          eventHandlers={{
+            click: () => onSelectBuilding(b),
+          }}
+        >
+          {!coarsePointer ? (
+            <Tooltip permanent={false} direction="top" offset={[0, -6]}>
+              {b.name}
+            </Tooltip>
+          ) : null}
+        </CircleMarker>
       ))}
     </MapContainer>
   )
