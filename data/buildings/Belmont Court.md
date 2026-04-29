@@ -5,6 +5,9 @@ address: 750 Belmont Ave E
 year: 1930
 ---
 ![[belmont court.png]]
+
+![[Screenshot 2026-04-29 at 9.05.52 AM.png]]
+
 Source: Buildings of Seattle
 
 Almost right next door to Oak Manor, Belmont Court is situated on a similar triangular plot and has a similar irregular L-shaped plan, but it is somewhat larger. The larger scale of this building follows the trend of Anhalt's later apartments, which often necessitated shared entries for multiple units. This configuration change meant that the pseudo-townhome layout with each unit getting its own exterior entry had to be modified, but the result was anything but the steril apartments with anonymous corridors. Each of the shared entries feature extraordinarily detailed and unique doors ranging from rectangular, round arched, and Gothic pointed arched with solid wood paneling, stained glass, and decorative iron hinges.  
